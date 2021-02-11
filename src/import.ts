@@ -229,7 +229,16 @@ class Context {
       for (let part of expr.type == "SEQ" ? expr.members : [expr]) {
         if (part.type == "STRING") pattern += part.value.replace(/[^\w\s]/g, "\\$&")
         else if (part.type == "PATTERN") pattern += part.value
-        else throw new RangeError("Word token too complex")
+        else if (part.type === "TOKEN" && part.content.type === "SEQ") {
+          pattern += "("
+          part.content.members.forEach(e => {
+            if (e.type === 'PATTERN') {
+              pattern += e.value
+            }
+          })
+          pattern += ")"
+        }
+        else throw new RangeError(`Word token too complex ${JSON.stringify([part], undefined , '  ')}`)
       }
       this.wordRuleName = this.def.rules["_kw"] ? this.generateName("kw") : "kw"
       this.wordRule = `${this.wordRuleName}<term> { @specialize[name={term}]<${this.translateName(this.def.word)}, term> }\n\n`
