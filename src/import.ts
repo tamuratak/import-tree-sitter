@@ -229,15 +229,7 @@ class Context {
       for (let part of expr.type == "SEQ" ? expr.members : [expr]) {
         if (part.type == "STRING") pattern += part.value.replace(/[^\w\s]/g, "\\$&")
         else if (part.type == "PATTERN") pattern += part.value
-        else if (part.type === "TOKEN" && part.content.type === "SEQ") {
-          pattern += "("
-          part.content.members.forEach(e => {
-            if (e.type === 'PATTERN') {
-              pattern += e.value
-            }
-          })
-          pattern += ")"
-        }
+        else if (part.type === "TOKEN") pattern += this.buildToken(part.content)
         else throw new RangeError(`Word token too complex ${JSON.stringify([part], undefined , '  ')}`)
       }
       this.wordRuleName = this.def.rules["_kw"] ? this.generateName("kw") : "kw"
@@ -257,6 +249,24 @@ class Context {
       this.translateRule(name, this.def.rules[name], first)
       first = false
     }
+  }
+
+  buildToken(content: TSExpr): string {
+    let pattern = ""
+    if (content.type === "SEQ") {
+      content.members.forEach(e => {
+        if (e.type == "STRING") {
+          pattern += e.value.replace(/[^\w\s]/g, "\\$&")
+        } else if (e.type === 'PATTERN') {
+          pattern += (e.value + ' ')
+        }
+      })
+    } else if (content.type === "CHOICE") {
+      pattern = "("
+      pattern += content.members.map(e => this.buildToken(e)).join(" | ")
+      pattern += ")"
+    } else throw new RangeError(`Word token too complex`)
+    return pattern
   }
 
   grammar() {
